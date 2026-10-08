@@ -49,6 +49,9 @@
   .t1024 { background: #edc53f; color: #f9f6f2; }
   .t2048 { background: #edc22e; color: #f9f6f2; box-shadow: 0 0 20px rgba(237,194,46,.6); }
   .tsuper{ background: #3c3a32; color: #f9f6f2; }
+  .dpad { display: grid; grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(2, 46px); gap: 8px; justify-content: center; margin-top: 14px; }
+  .dpad button { background: #ede0c8; color: #776e65; border: none; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; }
+  .dpad button:active { background: #d8c8a8; }
   #overlay {
     position: fixed; inset: 0; background: rgba(238,228,218,.73);
     display: none; align-items: center; justify-content: center; z-index: 10;
@@ -72,6 +75,10 @@
     <button class="btn" id="restart">新游戏</button>
   </div>
   <div id="board"></div>
+  <div class="dpad">
+    <span></span><button data-d="1">▲</button><span></span>
+    <button data-d="0">◀</button><button data-d="3">▼</button><button data-d="2">▶</button>
+  </div>
   <div id="overlay"><div class="msg"><h2 id="msg-title"></h2><button class="btn" id="again">再来一局</button></div></div>
   <p class="hint">电脑用方向键 / WASD 操作<br>手机上直接滑动屏幕</p>
 
@@ -231,22 +238,27 @@
     if (e.key in map) { e.preventDefault(); move(map[e.key]); }
   });
 
-  // touch swipe
-  var sx, sy;
-  board.addEventListener('touchstart', function(e){ var t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; }, {passive: true});
-  board.addEventListener('touchend', function(e){
-    var t = e.changedTouches[0];
-    var dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
-    if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 2 : 0);
-    else move(dy > 0 ? 3 : 1);
-    e.preventDefault();
+  // D-pad buttons (reliable on mobile)
+  var padBtns = document.querySelectorAll('.dpad button');
+  for (var bi = 0; bi < padBtns.length; bi++) (function(btn){
+    var d = parseInt(btn.getAttribute('data-d'), 10);
+    function go(e){ if(e) e.preventDefault(); move(d); }
+    btn.addEventListener('click', go);
+    btn.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); move(d); }, {passive: false});
+  })(padBtns[bi]);
+  // touch swipe anywhere on the page
+  var sx = 0, sy = 0, tracking = false;
+  document.addEventListener('touchstart', function(e){
+    if (e.touches.length !== 1) { tracking = false; return; }
+    var t = e.touches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
+  }, {passive: true});
+  document.addEventListener('touchmove', function(e){
+    if (tracking) e.preventDefault();
   }, {passive: false});
-  // allow swipe anywhere on body for mobile
-  document.body.addEventListener('touchstart', function(e){ var t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; }, {passive: true});
-  document.body.addEventListener('touchmove', function(e){ e.preventDefault(); }, {passive: false});
-  document.body.addEventListener('touchend', function(e){
-    if (e.target.closest('#board')) return; // board handler already did it
+  document.addEventListener('touchend', function(e){
+    if (!tracking) return; tracking = false;
+    // ignore swipes that started/ended on a button
+    if (e.target.closest && e.target.closest('button')) return;
     var t = e.changedTouches[0];
     var dx = t.clientX - sx, dy = t.clientY - sy;
     if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
