@@ -179,9 +179,9 @@
     return n;
   }
 
-  function gridsEqual(a, b) {
-    for (var r = 0; r < SIZE; r++) for (var c = 0; c < SIZE; c++) {
-      var x = a[r][c] ? a[r][c].v : 0, y = b[r][c] ? b[r][c].v : 0;
+  function rowsEqual(r1, r2) {
+    for (var c = 0; c < SIZE; c++) {
+      var x = r1[c] ? r1[c].v : 0, y = r2[c] ? r2[c].v : 0;
       if (x !== y) return false;
     }
     return true;
@@ -201,7 +201,7 @@
       var res = slideRow(g[r]);
       ng.push(res.row);
       gained += res.gained;
-      if (!gridsEqual([g[r]], [res.row])) moved = true;
+      if (!rowsEqual(g[r], res.row)) moved = true;
     }
     for (var j = 0; j < dir; j++) ng = rotate(ng);
     if (!moved) return;
